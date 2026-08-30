@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               href={href}
               aria-current={active ? "page" : undefined}
               className={cx(
-                "flex min-h-[44px] items-center gap-3 rounded-control px-3 text-callout transition",
+                "press flex min-h-[44px] items-center gap-3 rounded-control px-3 text-callout transition",
                 active ? "font-semibold" : "font-medium text-label-secondary",
               )}
               style={

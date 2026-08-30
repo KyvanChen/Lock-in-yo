@@ -8,6 +8,7 @@ import { TaskRow } from "@/components/TaskRow";
 import { TaskEditor } from "@/components/TaskEditor";
 import { Button, Divider, EmptyState, ListGroup, cx, inputClass, inputStyle } from "@/components/ui";
 import { CalendarIcon, PlusIcon } from "@/components/icons";
+import { PageHeader } from "@/components/PageHeader";
 
 type Bucket =
   | "Overdue"
@@ -97,15 +98,15 @@ export default function PlannerPage() {
   ).length;
 
   return (
-    <div className="mx-auto max-w-[720px] px-4 pb-24 pt-6 md:pb-10 md:pt-10">
-      <header className="mb-5">
-        <h1 className="text-large-title font-bold tracking-[-0.02em]">Planner</h1>
-        <p className="mt-0.5 text-subheadline text-label-secondary">
-          {todayCount > 0
+    <div className="mx-auto max-w-[720px] px-4 pb-24 md:pb-10">
+      <PageHeader
+        title="Planner"
+        subtitle={
+          todayCount > 0
             ? `${todayCount} ${todayCount === 1 ? "thing" : "things"} due today or overdue.`
-            : "Nothing overdue. Good place to be."}
-        </p>
-      </header>
+            : "Nothing overdue. Good place to be."
+        }
+      />
 
       {/* Quick add — one line, no dialog, for the 80% case. */}
       <div className="mb-4 flex gap-2">

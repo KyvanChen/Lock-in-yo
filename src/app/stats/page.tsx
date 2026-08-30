@@ -6,6 +6,7 @@ import { CATEGORY_META } from "@/lib/types";
 import { addDays, dayKey, formatDuration, startOfDay } from "@/lib/date";
 import { EmptyState, ListGroup } from "@/components/ui";
 import { ChartIcon, FlameIcon } from "@/components/icons";
+import { PageHeader } from "@/components/PageHeader";
 
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
 const DAYS = 14;
@@ -37,6 +38,7 @@ export default function StatsPage() {
   }, [perDay]);
 
   const peak = Math.max(settings.daily_goal_min * 60, ...recent.map((r) => r.seconds));
+  const goalPct = peak > 0 ? ((settings.daily_goal_min * 60) / peak) * 100 : 0;
 
   /** Consecutive days ending today (or yesterday) with any focus logged. */
   const streak = useMemo(() => {
@@ -79,10 +81,8 @@ export default function StatsPage() {
 
   if (focus.length === 0) {
     return (
-      <div className="mx-auto max-w-[720px] px-4 pb-24 pt-6 md:pb-10 md:pt-10">
-        <h1 className="mb-6 text-large-title font-bold tracking-[-0.02em]">
-          Stats
-        </h1>
+      <div className="mx-auto max-w-[720px] px-4 pb-24 md:pb-10">
+        <PageHeader title="Stats" />
         <EmptyState
           icon={<ChartIcon />}
           title="Nothing logged yet"
@@ -93,10 +93,8 @@ export default function StatsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[720px] px-4 pb-24 pt-6 md:pb-10 md:pt-10">
-      <h1 className="mb-5 text-large-title font-bold tracking-[-0.02em]">
-        Stats
-      </h1>
+    <div className="mx-auto max-w-[720px] px-4 pb-24 md:pb-10">
+      <PageHeader title="Stats" />
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat
@@ -118,39 +116,57 @@ export default function StatsPage() {
           className="rounded-card p-4"
           style={{ background: "var(--grouped-secondary)" }}
         >
-          <div className="flex h-[132px] items-stretch gap-1.5">
+          {/* The goal line carries the same information as the bar colour, so
+              the chart still reads for anyone who can't separate green from
+              blue. HIG > Accessibility: convey information with more than
+              colour alone. */}
+          <div className="relative flex h-[132px] items-end gap-1.5">
+            <div
+              className="pointer-events-none absolute inset-x-0 z-10 border-t border-dashed"
+              style={{
+                bottom: `${goalPct}%`,
+                borderColor: "var(--label-tertiary)",
+              }}
+              aria-hidden="true"
+            />
             {recent.map((r) => {
               const pct = peak > 0 ? (r.seconds / peak) * 100 : 0;
               const hitGoal = r.seconds >= settings.daily_goal_min * 60;
               return (
                 <div
                   key={r.date.toISOString()}
-                  className="flex h-full flex-1 flex-col items-center gap-1.5"
+                  className="group flex h-full flex-1 items-end"
+                  title={`${r.date.toDateString()}: ${formatDuration(r.seconds)}`}
                 >
-                  <div className="flex w-full min-h-0 flex-1 items-end">
-                    <div
-                      className="w-full rounded-t-[5px] transition-all duration-500"
-                      style={{
-                        height: `${Math.max(pct, r.seconds > 0 ? 4 : 1.5)}%`,
-                        background:
-                          r.seconds === 0
-                            ? "var(--fill-tertiary)"
-                            : hitGoal
-                              ? "var(--green)"
-                              : "var(--blue)",
-                      }}
-                      title={`${r.date.toDateString()}: ${formatDuration(r.seconds)}`}
-                    />
-                  </div>
-                  <span className="text-caption2 text-label-tertiary">
-                    {WEEKDAY.format(r.date)}
-                  </span>
+                  <div
+                    className="w-full rounded-t-[5px] transition-all duration-500 group-hover:opacity-80"
+                    style={{
+                      height: `${Math.max(pct, r.seconds > 0 ? 4 : 1.5)}%`,
+                      background:
+                        r.seconds === 0
+                          ? "var(--fill-tertiary)"
+                          : hitGoal
+                            ? "var(--green)"
+                            : "var(--blue)",
+                    }}
+                  />
                 </div>
               );
             })}
           </div>
+          <div className="mt-1.5 flex gap-1.5">
+            {recent.map((r) => (
+              <span
+                key={r.date.toISOString()}
+                className="flex-1 text-center text-caption2 text-label-tertiary"
+              >
+                {WEEKDAY.format(r.date)}
+              </span>
+            ))}
+          </div>
           <p className="mt-3 text-footnote text-label-secondary">
-            Green bars cleared your {settings.daily_goal_min} minute daily goal.
+            The dashed line is your {settings.daily_goal_min} minute daily goal.
+            Bars that clear it turn green.
           </p>
         </div>
       </section>

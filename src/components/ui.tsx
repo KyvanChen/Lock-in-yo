@@ -52,8 +52,8 @@ export function Button({
     <button
       {...props}
       className={cx(
-        "inline-flex items-center justify-center gap-2 transition-[opacity,transform,background-color] duration-150",
-        "active:scale-[0.97] active:opacity-80 disabled:opacity-40 disabled:pointer-events-none",
+        "press inline-flex items-center justify-center gap-2 transition-[opacity,transform,background-color] duration-150",
+        "active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none",
         sizes,
         variants[variant],
         block && "w-full",

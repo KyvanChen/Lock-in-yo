@@ -24,13 +24,14 @@ export function TaskRow({
   const dueToday = task.due_at && !task.done && daysUntil(task.due_at) === 0;
   const isTarget = taskId === task.id;
 
-  const meta: string[] = [];
-  if (task.course) meta.push(task.course);
-  if (task.estimate_min) meta.push(`${task.estimate_min}m planned`);
-  if (task.focus_sec > 0) meta.push(`${formatDuration(task.focus_sec)} logged`);
+  // Secondary detail, weakest of the three tiers, joined so it scans as one
+  // phrase rather than a jumble of loose fragments.
+  const detail: string[] = [];
+  if (task.estimate_min) detail.push(`${task.estimate_min}m planned`);
+  if (task.focus_sec > 0) detail.push(`${formatDuration(task.focus_sec)} logged`);
 
   return (
-    <div className="flex items-stretch">
+    <div className="flex items-stretch transition-colors hover:bg-[var(--fill-quaternary)]">
       {/* Completion toggle, sized well past the 44pt minimum target. */}
       <button
         onClick={() => toggleTask(task.id)}
@@ -78,17 +79,17 @@ export function TaskRow({
           )}
         </span>
 
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-footnote text-label-secondary">
-          <span className="inline-flex items-center gap-1.5">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-footnote">
+          <span className="inline-flex items-center gap-1.5 text-label-secondary">
             <span
-              className="h-[7px] w-[7px] rounded-full"
+              className="h-[7px] w-[7px] shrink-0 rounded-full"
               style={{ background: cat.color }}
             />
-            {cat.label}
+            {task.course || cat.label}
           </span>
-          {meta.map((m) => (
-            <span key={m}>{m}</span>
-          ))}
+          {detail.length > 0 && (
+            <span className="text-label-tertiary">{detail.join(" · ")}</span>
+          )}
           {task.due_at && (
             <span
               /* Overdue is carried by the word as well as the color, so the

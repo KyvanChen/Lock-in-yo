@@ -7,6 +7,7 @@ import { addDays, dayKey, startOfDay } from "@/lib/date";
 import { TaskEditor } from "@/components/TaskEditor";
 import { Button, cx } from "@/components/ui";
 import { ChevronIcon, PlusIcon } from "@/components/icons";
+import { PageHeader } from "@/components/PageHeader";
 
 const WEEKDAY = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const DAY_NUM = new Intl.DateTimeFormat(undefined, { day: "numeric" });
@@ -77,34 +78,32 @@ export default function WeekPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1100px] px-4 pb-24 pt-6 md:pb-10 md:pt-10">
-      <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-large-title font-bold tracking-[-0.02em]">Week</h1>
-          <p className="mt-0.5 text-subheadline text-label-secondary">
-            {RANGE.format(start)} – {RANGE.format(addDays(start, 6))}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={() => setOffset((o) => o - 1)}
-            aria-label="Previous week"
-          >
-            <ChevronIcon className="rotate-180 text-[16px]" />
-          </Button>
-          <Button size="sm" onClick={() => setOffset(0)} disabled={offset === 0}>
-            Today
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => setOffset((o) => o + 1)}
-            aria-label="Next week"
-          >
-            <ChevronIcon className="text-[16px]" />
-          </Button>
-        </div>
-      </header>
+    <div className="mx-auto max-w-[1100px] px-4 pb-24 md:pb-10">
+      <PageHeader
+        title="Week"
+        subtitle={`${RANGE.format(start)} – ${RANGE.format(addDays(start, 6))}`}
+        action={
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => setOffset((o) => o - 1)}
+              aria-label="Previous week"
+            >
+              <ChevronIcon className="rotate-180 text-[16px]" />
+            </Button>
+            <Button size="sm" onClick={() => setOffset(0)} disabled={offset === 0}>
+              Today
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setOffset((o) => o + 1)}
+              aria-label="Next week"
+            >
+              <ChevronIcon className="text-[16px]" />
+            </Button>
+          </div>
+        }
+      />
 
       {/* Seven columns only once there is real room for them; below that the
           days wrap rather than squeezing to an unreadable width. */}
@@ -165,7 +164,7 @@ export default function WeekPage() {
                   <button
                     key={task.id}
                     onClick={() => openEdit(task)}
-                    className="rounded-[10px] px-2 py-1.5 text-left transition active:scale-[0.98]"
+                    className="press rounded-[10px] px-2 py-1.5 text-left transition active:scale-[0.98]"
                     style={{
                       background: `color-mix(in srgb, ${CATEGORY_META[task.category].color} ${task.done ? 6 : 13}%, transparent)`,
                     }}
@@ -210,7 +209,7 @@ export default function WeekPage() {
               <button
                 key={task.id}
                 onClick={() => openEdit(task)}
-                className="rounded-full px-3 py-2 text-footnote transition active:scale-[0.97]"
+                className="press rounded-full px-3 py-2 text-footnote transition active:scale-[0.97]"
                 style={{
                   background: `color-mix(in srgb, ${CATEGORY_META[task.category].color} 13%, transparent)`,
                 }}

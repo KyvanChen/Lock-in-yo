@@ -24,6 +24,7 @@ import {
   SkipIcon,
   StopIcon,
 } from "@/components/icons";
+import { PageHeader } from "@/components/PageHeader";
 
 const RADIUS = 120;
 const CIRC = 2 * Math.PI * RADIUS;
@@ -332,19 +333,19 @@ export default function LockInPage() {
   /* --- Normal view -------------------------------------------------------- */
   return (
     <div ref={shell} className="mx-auto max-w-[720px] px-4 pb-24 pt-6 md:pb-10 md:pt-10">
-      <header className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-large-title font-bold tracking-[-0.02em]">
-            Lock In
-          </h1>
-          <p className="mt-0.5 text-subheadline text-label-secondary">
-            {method.name} · {method.tagline}
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setSettingsOpen(true)}>
-          Settings
-        </Button>
-      </header>
+      <PageHeader
+        title="Lock In"
+        subtitle={`${method.name} · ${method.tagline}`}
+        action={
+          <Button
+            size="sm"
+            className="shrink-0"
+            onClick={() => setSettingsOpen(true)}
+          >
+            Settings
+          </Button>
+        }
+      />
 
       {/* Today's total, so the timer has a point beyond itself. */}
       <div
@@ -497,7 +498,7 @@ export default function LockInPage() {
                 key={m.id}
                 onClick={() => applyMethod(m.id)}
                 aria-pressed={active}
-                className="rounded-card p-3 text-left transition active:scale-[0.99]"
+                className="press rounded-card p-3 text-left transition active:scale-[0.99]"
                 style={{
                   background: active
                     ? `color-mix(in srgb, ${m.color} 12%, transparent)`
@@ -685,7 +686,7 @@ function SceneCard({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className="rounded-card p-3 text-left transition active:scale-[0.99]"
+      className="press rounded-card p-3 text-left transition active:scale-[0.99]"
       style={{
         background: active
           ? "color-mix(in srgb, var(--blue) 12%, transparent)"

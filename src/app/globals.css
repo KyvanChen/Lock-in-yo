@@ -130,6 +130,51 @@
   color-scheme: dark;
 }
 
+/* HIG > Accessibility: "If your app doesn't provide this minimum contrast by
+   default, ensure it at least provides a higher contrast color scheme when the
+   system setting Increase Contrast is turned on." Secondary and tertiary
+   labels gain opacity, separators go opaque, and fills deepen so edges stay
+   findable. */
+@media (prefers-contrast: more) {
+  :root {
+    --label-secondary: rgba(60, 60, 67, 0.86);
+    --label-tertiary: rgba(60, 60, 67, 0.64);
+    --label-quaternary: rgba(60, 60, 67, 0.42);
+    --separator: rgba(60, 60, 67, 0.62);
+    --fill: rgba(120, 120, 128, 0.34);
+    --fill-secondary: rgba(120, 120, 128, 0.28);
+    --fill-tertiary: rgba(118, 118, 128, 0.22);
+    --fill-quaternary: rgba(116, 116, 128, 0.16);
+    --blue: #0060df;
+    --green: #248a3d;
+    --red: #d70015;
+    --orange: #c93400;
+    --indigo: #3634a3;
+    --teal: #0071a4;
+    --pink: #d30f45;
+    --purple: #8944ab;
+  }
+
+  :root:not([data-theme="light"]) {
+    --label-secondary: rgba(235, 235, 245, 0.88);
+    --label-tertiary: rgba(235, 235, 245, 0.68);
+    --label-quaternary: rgba(235, 235, 245, 0.44);
+    --separator: rgba(120, 120, 128, 0.9);
+    --fill: rgba(120, 120, 128, 0.5);
+    --fill-secondary: rgba(120, 120, 128, 0.44);
+    --fill-tertiary: rgba(118, 118, 128, 0.36);
+    --fill-quaternary: rgba(116, 116, 128, 0.28);
+    --blue: #409cff;
+    --green: #30db5b;
+    --red: #ff6961;
+    --orange: #ffb340;
+    --indigo: #7d7aff;
+    --teal: #5de6ff;
+    --pink: #ff6482;
+    --purple: #da8fff;
+  }
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-bg-secondary: var(--bg-secondary);
@@ -269,6 +314,35 @@
       background: var(--bg-secondary);
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
+    }
+  }
+
+  /* Pointer feedback for anything pressable. The overlay is currentColor, so a
+     filled button lightens and a tinted one deepens its own tint without
+     needing a per-variant hover colour. Gated on real hover hardware so it
+     never sticks after a tap on a phone. */
+  .press {
+    position: relative;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .press::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: currentColor;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      pointer-events: none;
+    }
+
+    .press:hover::after {
+      opacity: 0.09;
+    }
+
+    .press:active::after {
+      opacity: 0.14;
     }
   }
 

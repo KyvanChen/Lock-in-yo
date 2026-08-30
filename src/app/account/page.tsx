@@ -12,21 +12,18 @@ import {
   inputStyle,
 } from "@/components/ui";
 import { CloudIcon } from "@/components/icons";
+import { PageHeader } from "@/components/PageHeader";
 
 export default function AccountPage() {
   const { user, sync, syncError, lastSyncedAt, syncNow, signOut, tasks, sessions } =
     useData();
 
   return (
-    <div className="mx-auto max-w-[560px] px-4 pb-24 pt-6 md:pb-10 md:pt-10">
-      <header className="mb-5">
-        <h1 className="text-large-title font-bold tracking-[-0.02em]">
-          Account
-        </h1>
-        <p className="mt-0.5 text-subheadline text-label-secondary">
-          Sign in to use the same planner on your laptop and your phone.
-        </p>
-      </header>
+    <div className="mx-auto max-w-[560px] px-4 pb-24 md:pb-10">
+      <PageHeader
+        title="Account"
+        subtitle="Sign in to use the same planner on your laptop and your phone."
+      />
 
       <SyncCard
         state={sync}
