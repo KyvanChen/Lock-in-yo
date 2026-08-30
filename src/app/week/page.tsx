@@ -106,7 +106,9 @@ export default function WeekPage() {
         </div>
       </header>
 
-      <div className="grid gap-3 md:grid-cols-7">
+      {/* Seven columns only once there is real room for them; below that the
+          days wrap rather than squeezing to an unreadable width. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
         {days.map((day) => {
           const key = dayKey(day);
           const list = byDay.get(key) ?? [];
@@ -124,8 +126,8 @@ export default function WeekPage() {
                   : undefined,
               }}
             >
-              <header className="mb-2 flex items-baseline justify-between px-1">
-                <span className="flex items-baseline gap-1.5">
+              <header className="mb-2 flex items-center justify-between gap-1 px-1">
+                <span className="flex min-w-0 items-baseline gap-1.5">
                   <span
                     className={cx(
                       "text-footnote font-semibold uppercase tracking-[0.06em]",
@@ -146,7 +148,7 @@ export default function WeekPage() {
                 <button
                   onClick={() => openNew(day)}
                   aria-label={`Add a task due ${WEEKDAY.format(day)} ${DAY_NUM.format(day)}`}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-[15px] text-label-tertiary transition active:scale-90"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[15px] text-label-tertiary transition active:scale-90"
                   style={{ background: "var(--fill-quaternary)" }}
                 >
                   <PlusIcon />
