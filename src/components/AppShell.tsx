@@ -16,7 +16,7 @@ import {
 
 const TABS = [
   { href: "/", label: "Planner", Icon: CalendarIcon },
-  { href: "/week", label: "Week", Icon: BoardIcon },
+  { href: "/calendar", label: "Calendar", Icon: BoardIcon },
   { href: "/lockin", label: "Lock In", Icon: TimerIcon },
   { href: "/stats", label: "Stats", Icon: ChartIcon },
   { href: "/account", label: "Account", Icon: PersonIcon },

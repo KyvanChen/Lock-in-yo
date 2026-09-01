@@ -12,8 +12,22 @@ with type (homework, studying, projects, personal), class, due date, priority,
 time estimate, and logged focus time. Quick-add on one line, full editor when you
 need it.
 
-**Week** — the next seven days as columns. Tap a day's + to add something due
-that day. Anything without a date sits underneath, waiting to be scheduled.
+**Calendar** — week and month views. Tap a day to add something due then.
+Anything without a date sits underneath, waiting to be scheduled.
+
+**Import** — pull a whole term in at once from Schoology or Google Calendar.
+
+- Paste an `.ics` feed, drop in an exported `.ics` file, or just copy a list of
+  assignments off any page — every line with a date in it becomes a task.
+- Each event is previewed before anything is created: edit the title, set the
+  class, change the type. Nothing is added until you say so.
+- It guesses the type from the wording (quiz/exam → studying, essay/project →
+  projects, no school/assembly → personal) and pulls the class out of shapes
+  like `AP Biology: Lab writeup` or `Problem set 7 (Calculus BC)`.
+- Anything already in your planner is flagged and unticked, so you can re-import
+  an updated feed without doubling everything up.
+- Repeating events are left out by default — they're usually class periods
+  rather than work — but there's a checkbox if you want them.
 
 **Lock In** — the focus timer.
 

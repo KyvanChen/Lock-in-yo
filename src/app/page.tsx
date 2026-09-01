@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useData } from "@/lib/store";
 import { CATEGORIES, type Category, type Task } from "@/lib/types";
 import { daysUntil } from "@/lib/date";
@@ -105,6 +106,11 @@ export default function PlannerPage() {
           todayCount > 0
             ? `${todayCount} ${todayCount === 1 ? "thing" : "things"} due today or overdue.`
             : "Nothing overdue. Good place to be."
+        }
+        action={
+          <Link href="/import" className="shrink-0">
+            <Button size="sm">Import</Button>
+          </Link>
         }
       />
 
