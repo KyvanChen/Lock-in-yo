@@ -140,6 +140,14 @@ export const SearchIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const BubblesIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="9" cy="14" r="5.5" />
+    <circle cx="17" cy="7.5" r="3.5" />
+    <path d="M13.2 10.6 12 11.6" />
+  </Icon>
+);
+
 export const FlameIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 3s5 4.2 5 9a5 5 0 0 1-10 0c0-1.6.7-3 1.5-4 .3 1.2 1 2 1.8 2C11.9 10 11 6.5 12 3z" />

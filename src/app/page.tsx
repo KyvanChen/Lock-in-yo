@@ -8,7 +8,7 @@ import { daysUntil } from "@/lib/date";
 import { TaskRow } from "@/components/TaskRow";
 import { TaskEditor } from "@/components/TaskEditor";
 import { Button, Divider, EmptyState, ListGroup, cx, inputClass, inputStyle } from "@/components/ui";
-import { CalendarIcon, PlusIcon } from "@/components/icons";
+import { CalendarIcon, PersonIcon, PlusIcon } from "@/components/icons";
 import { PageHeader } from "@/components/PageHeader";
 
 type Bucket =
@@ -108,9 +108,16 @@ export default function PlannerPage() {
             : "Nothing overdue. Good place to be."
         }
         action={
-          <Link href="/import" className="shrink-0">
-            <Button size="sm">Import</Button>
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link href="/import">
+              <Button size="sm">Import</Button>
+            </Link>
+            <Link href="/account" aria-label="Account and sync">
+              <Button size="sm" aria-hidden="true">
+                <PersonIcon className="text-[17px]" />
+              </Button>
+            </Link>
+          </div>
         }
       />
 

@@ -43,6 +43,32 @@ export interface Session {
   deleted_at: string | null;
 }
 
+/** A bubble on the brainstorm canvas. */
+export interface Idea {
+  id: string;
+  text: string;
+  /** Null for a root bubble; otherwise the bubble it branches from. */
+  parent_id: string | null;
+  /** Index into IDEA_COLORS. */
+  color: number;
+  /** Last resting position, so a board reopens roughly as you left it. */
+  x: number;
+  y: number;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export const IDEA_COLORS = [
+  "var(--blue)",
+  "var(--purple)",
+  "var(--teal)",
+  "var(--orange)",
+  "var(--pink)",
+  "var(--green)",
+  "var(--indigo)",
+];
+
 export interface Settings {
   method: MethodId;
   focus_min: number;

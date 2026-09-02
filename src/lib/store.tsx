@@ -13,6 +13,7 @@ import type { User } from "@supabase/supabase-js";
 import { cloudEnabled, getSupabase } from "./supabase";
 import {
   DEFAULT_SETTINGS,
+  type Idea,
   type Session,
   type Settings,
   type Task,
@@ -21,6 +22,7 @@ import {
 const TASK_KEY = "lockin.tasks.v1";
 const SESSION_KEY = "lockin.sessions.v1";
 const SETTINGS_KEY = "lockin.settings.v1";
+const IDEA_KEY = "lockin.ideas.v1";
 
 export type SyncState =
   | "off" // no Supabase keys configured; local-only
@@ -89,6 +91,7 @@ interface DataContextValue {
   ready: boolean;
   tasks: Task[];
   sessions: Session[];
+  ideas: Idea[];
   settings: Settings;
   user: User | null;
   sync: SyncState;
@@ -106,6 +109,9 @@ interface DataContextValue {
     route?: string | null,
   ) => void;
   logBreak: (seconds: number) => void;
+  addIdea: (patch: Partial<Idea> & { text: string }) => Idea;
+  updateIdea: (id: string, patch: Partial<Idea>) => void;
+  deleteIdea: (id: string) => void;
   setSettings: (patch: Partial<Settings>) => void;
   syncNow: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -117,6 +123,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [ideas, setIdeas] = useState<Idea[]>([]);
   const [settings, setSettingsState] = useState<Settings>(DEFAULT_SETTINGS);
   const [user, setUser] = useState<User | null>(null);
   const [sync, setSync] = useState<SyncState>(cloudEnabled ? "signed-out" : "off");
@@ -125,10 +132,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // Latest state for the debounced pusher, which must not re-subscribe on
   // every keystroke.
-  const latest = useRef({ tasks, sessions });
+  const latest = useRef({ tasks, sessions, ideas });
   useEffect(() => {
-    latest.current = { tasks, sessions };
-  }, [tasks, sessions]);
+    latest.current = { tasks, sessions, ideas };
+  }, [tasks, sessions, ideas]);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* --- Load from disk once on mount ------------------------------------- */
@@ -138,6 +145,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setTasks(readLocal<Task[]>(TASK_KEY, []));
     setSessions(readLocal<Session[]>(SESSION_KEY, []));
+    setIdeas(readLocal<Idea[]>(IDEA_KEY, []));
     setSettingsState({
       ...DEFAULT_SETTINGS,
       ...readLocal<Partial<Settings>>(SETTINGS_KEY, {}),
@@ -153,6 +161,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (ready) writeLocal(SESSION_KEY, sessions);
   }, [sessions, ready]);
+  useEffect(() => {
+    if (ready) writeLocal(IDEA_KEY, ideas);
+  }, [ideas, ready]);
   useEffect(() => {
     if (ready) writeLocal(SETTINGS_KEY, settings);
   }, [settings, ready]);
@@ -182,14 +193,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (taskRes.error) throw taskRes.error;
       if (sessionRes.error) throw sessionRes.error;
 
+      // The ideas table arrived after the first release, so treat it as
+      // optional: if it isn't there yet, brainstorms stay on this device and
+      // tasks keep syncing normally rather than the whole sync failing.
+      let remoteIdeas: Idea[] | null = null;
+      const ideaRes = await sb.from("ideas").select("*").eq("user_id", user.id);
+      if (!ideaRes.error) remoteIdeas = (ideaRes.data ?? []) as Idea[];
+
       const remoteTasks = (taskRes.data ?? []) as Task[];
       const remoteSessions = (sessionRes.data ?? []) as Session[];
 
       const mergedTasks = merge(latest.current.tasks, remoteTasks);
       const mergedSessions = merge(latest.current.sessions, remoteSessions);
+      const mergedIdeas = remoteIdeas
+        ? merge(latest.current.ideas, remoteIdeas)
+        : latest.current.ideas;
 
       setTasks(mergedTasks);
       setSessions(mergedSessions);
+      if (remoteIdeas) setIdeas(mergedIdeas);
 
       const taskUp = outbound(mergedTasks, remoteTasks).map((t) => ({
         ...t,
@@ -207,6 +229,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (sessionUp.length) {
         const { error } = await sb.from("sessions").upsert(sessionUp);
         if (error) throw error;
+      }
+      if (remoteIdeas) {
+        const ideaUp = outbound(mergedIdeas, remoteIdeas).map((i) => ({
+          ...i,
+          user_id: user.id,
+        }));
+        if (ideaUp.length) await sb.from("ideas").upsert(ideaUp);
       }
 
       setSync("synced");
@@ -383,6 +412,65 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     [schedulePush],
   );
 
+  const addIdea = useCallback(
+    (patch: Partial<Idea> & { text: string }) => {
+      const stamp = now();
+      const idea: Idea = {
+        id: newId(),
+        text: patch.text,
+        parent_id: patch.parent_id ?? null,
+        color: patch.color ?? 0,
+        x: patch.x ?? 0,
+        y: patch.y ?? 0,
+        created_at: stamp,
+        updated_at: stamp,
+        deleted_at: null,
+      };
+      setIdeas((prev) => [...prev, idea]);
+      schedulePush();
+      return idea;
+    },
+    [schedulePush],
+  );
+
+  const updateIdea = useCallback(
+    (id: string, patch: Partial<Idea>) => {
+      setIdeas((prev) =>
+        prev.map((i) =>
+          i.id === id ? { ...i, ...patch, updated_at: now() } : i,
+        ),
+      );
+      schedulePush();
+    },
+    [schedulePush],
+  );
+
+  /** Removing a bubble takes its whole branch with it. */
+  const deleteIdea = useCallback(
+    (id: string) => {
+      const stamp = now();
+      setIdeas((prev) => {
+        const doomed = new Set<string>([id]);
+        // Repeat until closed, since children can appear in any order.
+        let grew = true;
+        while (grew) {
+          grew = false;
+          for (const i of prev) {
+            if (i.parent_id && doomed.has(i.parent_id) && !doomed.has(i.id)) {
+              doomed.add(i.id);
+              grew = true;
+            }
+          }
+        }
+        return prev.map((i) =>
+          doomed.has(i.id) ? { ...i, deleted_at: stamp, updated_at: stamp } : i,
+        );
+      });
+      schedulePush();
+    },
+    [schedulePush],
+  );
+
   const setSettings = useCallback((patch: Partial<Settings>) => {
     setSettingsState((prev) => ({ ...prev, ...patch }));
   }, []);
@@ -401,11 +489,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     () => sessions.filter((s) => !s.deleted_at),
     [sessions],
   );
+  const liveIdeas = useMemo(() => ideas.filter((i) => !i.deleted_at), [ideas]);
 
   const value: DataContextValue = {
     ready,
     tasks: liveTasks,
     sessions: liveSessions,
+    ideas: liveIdeas,
     settings,
     user,
     sync,
@@ -417,6 +507,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     deleteTask,
     logFocus,
     logBreak,
+    addIdea,
+    updateIdea,
+    deleteIdea,
     setSettings,
     syncNow,
     signOut,

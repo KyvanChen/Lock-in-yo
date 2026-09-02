@@ -15,6 +15,14 @@ need it.
 **Calendar** — week and month views. Tap a day to add something due then.
 Anything without a date sits underneath, waiting to be scheduled.
 
+**Ideas** — a bubble map for brainstorming, on a live physics canvas. Bubbles
+repel each other, branches hang off their parent on springs, and everything
+drifts gently when left alone. Double-tap the board for a new bubble, Enter to
+branch off the selected one, drag to rearrange. Colour steps along the palette
+with each level, so depth reads at a glance. Any bubble can become a project in
+the planner — it takes the root bubble as its class, so a branch keeps the
+theme it came from. Deleting takes the whole branch with it.
+
 **Import** — pull a whole term in at once from Schoology or Google Calendar.
 
 - Paste an `.ics` feed, drop in an exported `.ics` file, or just copy a list of
@@ -83,6 +91,10 @@ data lives in your browser.
    ```
 
 5. Restart `npm run dev`, open **Account**, and create an account.
+
+Already set this up before the Ideas board existed? Re-run `schema.sql` — it's
+safe to run again and adds the `ideas` table. Until you do, brainstorms simply
+stay on the device that made them; tasks keep syncing as normal.
 
 Optional: under **Authentication → Sign In / Providers → Email**, turn off
 "Confirm email" so you can sign in immediately without the confirmation step.

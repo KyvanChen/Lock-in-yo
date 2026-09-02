@@ -8,18 +8,21 @@ import { formatClock } from "@/lib/date";
 import { cx } from "./ui";
 import {
   BoardIcon,
+  BubblesIcon,
   CalendarIcon,
   ChartIcon,
-  PersonIcon,
   TimerIcon,
 } from "./icons";
 
+/* Five is the ceiling for a mobile tab bar, so Account lives in the Planner
+   header instead — it's a settings destination, not somewhere you switch to
+   several times an hour. */
 const TABS = [
   { href: "/", label: "Planner", Icon: CalendarIcon },
   { href: "/calendar", label: "Calendar", Icon: BoardIcon },
+  { href: "/ideas", label: "Ideas", Icon: BubblesIcon },
   { href: "/lockin", label: "Lock In", Icon: TimerIcon },
   { href: "/stats", label: "Stats", Icon: ChartIcon },
-  { href: "/account", label: "Account", Icon: PersonIcon },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
