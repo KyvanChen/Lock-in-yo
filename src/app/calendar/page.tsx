@@ -1,14 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useData } from "@/lib/store";
 import { CATEGORY_META, type Task } from "@/lib/types";
 import { addDays, dayKey, startOfDay } from "@/lib/date";
 import { TaskEditor } from "@/components/TaskEditor";
 import { PageHeader } from "@/components/PageHeader";
-import { Button, EmptyState, Segmented, cx } from "@/components/ui";
-import { BoardIcon, ChevronIcon, PlusIcon } from "@/components/icons";
+import { useTaskDrag } from "@/components/calendar/useTaskDrag";
+import { Button, Segmented, cx } from "@/components/ui";
+import { ChevronIcon, PlusIcon } from "@/components/icons";
 
 const WEEKDAY_SHORT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const WEEKDAY_NARROW = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
@@ -30,13 +31,46 @@ function weekStart(d: Date): Date {
   return addDays(x, -((x.getDay() + 6) % 7));
 }
 
+/** "2026-09-15" back to a Date at the end of that local day. */
+function endOfDayFromKey(key: string): Date {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d, 23, 59, 0, 0);
+}
+
 export default function CalendarPage() {
-  const { tasks } = useData();
+  const { tasks, updateTask } = useData();
   const [mode, setMode] = useState<Mode>("week");
   const [offset, setOffset] = useState(0);
   const [editing, setEditing] = useState<Task | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [newDue, setNewDue] = useState<string | null>(null);
+  const [justMoved, setJustMoved] = useState<string | null>(null);
+
+  const openEdit = useCallback(
+    (taskId: string) => {
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      setNewDue(null);
+      setEditing(task);
+      setEditorOpen(true);
+    },
+    [tasks],
+  );
+
+  /** Dropping on a day sets the deadline to the end of that day. */
+  const handleDrop = useCallback(
+    (taskId: string, key: string) => {
+      updateTask(taskId, { due_at: endOfDayFromKey(key).toISOString() });
+      setJustMoved(taskId);
+      window.setTimeout(() => setJustMoved(null), 1200);
+    },
+    [updateTask],
+  );
+
+  const { bind, ghost, hoverKey } = useTaskDrag({
+    onDrop: handleDrop,
+    onTap: openEdit,
+  });
 
   /** Tasks bucketed by the local day they're due. */
   const byDay = useMemo(() => {
@@ -71,10 +105,8 @@ export default function CalendarPage() {
   const month = useMemo(() => {
     const now = new Date();
     const first = new Date(now.getFullYear(), now.getMonth() + offset, 1);
-    const gridStart = weekStart(first);
     // Six rows always, so the grid height never jumps between months.
-    const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
-    return { first, cells };
+    return { first, cells: Array.from({ length: 42 }, (_, i) => addDays(weekStart(first), i)) };
   }, [offset]);
 
   const openNew = (day: Date) => {
@@ -85,18 +117,20 @@ export default function CalendarPage() {
     setEditorOpen(true);
   };
 
-  const openEdit = (task: Task) => {
-    setNewDue(null);
-    setEditing(task);
-    setEditorOpen(true);
-  };
-
   const subtitle =
     mode === "week"
       ? `${RANGE.format(weekDays[0])} – ${RANGE.format(weekDays[6])}`
       : MONTH_YEAR.format(month.first);
 
-  const scheduled = tasks.filter((t) => t.due_at).length;
+  const chip = (task: Task, compact: boolean) => (
+    <TaskChip
+      key={task.id}
+      task={task}
+      compact={compact}
+      moved={justMoved === task.id}
+      {...bind(task, CATEGORY_META[task.category].color)}
+    />
+  );
 
   return (
     <div className="mx-auto max-w-[1100px] px-4 pb-24 md:pb-10">
@@ -141,18 +175,7 @@ export default function CalendarPage() {
         />
       </div>
 
-      {scheduled === 0 ? (
-        <EmptyState
-          icon={<BoardIcon />}
-          title="Nothing scheduled"
-          message="Give a task a due date and it lands here. If your school posts a calendar, import it and the whole term fills in at once."
-          action={
-            <Link href="/import">
-              <Button variant="filled">Import a calendar</Button>
-            </Link>
-          }
-        />
-      ) : mode === "week" ? (
+      {mode === "week" ? (
         /* Seven columns only once there is real room for them; below that the
            days wrap rather than squeezing to an unreadable width. */
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
@@ -160,15 +183,22 @@ export default function CalendarPage() {
             const key = dayKey(day);
             const list = byDay.get(key) ?? [];
             const isToday = key === todayKey;
-            const openCount = list.filter((t) => !t.done).length;
+            const isTarget = hoverKey === key;
 
             return (
               <section
                 key={key}
-                className="flex flex-col rounded-card p-2.5"
+                data-day={key}
+                className="flex flex-col rounded-card p-2.5 transition-colors"
                 style={{
-                  background: "var(--grouped-secondary)",
-                  boxShadow: isToday ? "inset 0 0 0 2px var(--blue)" : undefined,
+                  background: isTarget
+                    ? "color-mix(in srgb, var(--blue) 16%, var(--grouped-secondary))"
+                    : "var(--grouped-secondary)",
+                  boxShadow: isTarget
+                    ? "inset 0 0 0 2px var(--blue)"
+                    : isToday
+                      ? "inset 0 0 0 2px var(--blue)"
+                      : undefined,
                 }}
               >
                 <header className="mb-2 flex items-center justify-between gap-1 px-1">
@@ -200,60 +230,140 @@ export default function CalendarPage() {
                   </button>
                 </header>
 
-                <div className="flex flex-col gap-1.5">
+                <div className="flex min-h-[44px] flex-col gap-1.5">
                   {list.length === 0 && (
                     <p className="px-1 py-3 text-caption text-label-tertiary">
-                      Clear
+                      {isTarget ? "Drop to set this date" : "Clear"}
                     </p>
                   )}
-                  {list.map((task) => (
-                    <TaskChip key={task.id} task={task} onClick={openEdit} clamp={3} />
-                  ))}
+                  {list.map((t) => chip(t, false))}
                 </div>
-
-                {openCount > 2 && (
-                  <p className="mt-2 px-1 text-caption2 text-label-tertiary">
-                    {openCount} open
-                  </p>
-                )}
               </section>
             );
           })}
         </div>
       ) : (
-        <MonthGrid
-          cells={month.cells}
-          monthIndex={month.first.getMonth()}
-          byDay={byDay}
-          todayKey={todayKey}
-          onOpen={openEdit}
-          onAdd={openNew}
-        />
-      )}
-
-      {unscheduled.length > 0 && (
-        <section className="mt-6">
-          <h2 className="mb-2 px-1 text-footnote font-semibold uppercase tracking-[0.06em] text-label-secondary">
-            No date yet · {unscheduled.length}
-          </h2>
-          <p className="mb-2.5 px-1 text-footnote text-label-secondary">
-            Open one and give it a due date to drop it into the calendar.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {unscheduled.map((task) => (
-              <button
-                key={task.id}
-                onClick={() => openEdit(task)}
-                className="press rounded-full px-3 py-2 text-footnote transition active:scale-[0.97]"
-                style={{
-                  background: `color-mix(in srgb, ${CATEGORY_META[task.category].color} 13%, transparent)`,
-                }}
+        <div>
+          <div className="mb-1.5 grid grid-cols-7 gap-1.5">
+            {month.cells.slice(0, 7).map((d) => (
+              <div
+                key={d.toISOString()}
+                className="text-center text-caption2 font-semibold uppercase tracking-[0.06em] text-label-tertiary"
               >
-                {task.title}
-              </button>
+                <span className="hidden sm:inline">{WEEKDAY_SHORT.format(d)}</span>
+                <span className="sm:hidden">{WEEKDAY_NARROW.format(d)}</span>
+              </div>
             ))}
           </div>
-        </section>
+
+          <div className="grid grid-cols-7 gap-1.5">
+            {month.cells.map((day) => {
+              const key = dayKey(day);
+              const list = byDay.get(key) ?? [];
+              const isToday = key === todayKey;
+              const isTarget = hoverKey === key;
+              const outside = day.getMonth() !== month.first.getMonth();
+              const shown = list.slice(0, 2);
+              const extra = list.length - shown.length;
+
+              return (
+                <div
+                  key={key}
+                  data-day={key}
+                  className="flex min-h-[92px] flex-col gap-1 rounded-[10px] p-1.5 transition-colors sm:min-h-[112px]"
+                  style={{
+                    background: isTarget
+                      ? "color-mix(in srgb, var(--blue) 20%, var(--grouped-secondary))"
+                      : outside
+                        ? "var(--fill-quaternary)"
+                        : "var(--grouped-secondary)",
+                    opacity: outside && !isTarget ? 0.55 : 1,
+                    boxShadow:
+                      isTarget || isToday ? "inset 0 0 0 2px var(--blue)" : undefined,
+                  }}
+                >
+                  <button
+                    onClick={() => openNew(day)}
+                    aria-label={`Add a task due ${day.toDateString()}`}
+                    className={cx(
+                      "press self-start rounded-full px-1.5 text-caption transition",
+                      isToday ? "font-bold text-blue" : "text-label-tertiary",
+                    )}
+                  >
+                    {DAY_NUM.format(day)}
+                  </button>
+
+                  {shown.map((t) => chip(t, true))}
+
+                  {extra > 0 && (
+                    <span className="px-1 text-caption2 text-label-tertiary">
+                      +{extra} more
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* The unscheduled tray. Drag anything here onto a day to give it a
+          deadline — the whole reason the grid is always rendered, even when
+          nothing has a date yet. */}
+      <section className="mt-6">
+        <h2 className="mb-2 px-1 text-footnote font-semibold uppercase tracking-[0.06em] text-label-secondary">
+          No date yet · {unscheduled.length}
+        </h2>
+        {unscheduled.length === 0 ? (
+          <p className="px-1 text-footnote text-label-secondary">
+            Everything with a deadline is on the calendar.{" "}
+            <Link href="/" className="text-blue">
+              Add a task
+            </Link>{" "}
+            or{" "}
+            <Link href="/import" className="text-blue">
+              import your school calendar
+            </Link>
+            .
+          </p>
+        ) : (
+          <>
+            <p className="mb-2.5 px-1 text-footnote text-label-secondary">
+              Drag one onto a day to set its due date. Tap to open it instead.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {unscheduled.map((task) => (
+                <button
+                  key={task.id}
+                  {...bind(task, CATEGORY_META[task.category].color)}
+                  className="press touch-none cursor-grab rounded-full px-3 py-2 text-footnote transition active:cursor-grabbing"
+                  style={{
+                    background: `color-mix(in srgb, ${CATEGORY_META[task.category].color} 13%, transparent)`,
+                  }}
+                >
+                  {task.title}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* Follows the pointer so there is always something under your finger. */}
+      {ghost && (
+        <div
+          className="pointer-events-none fixed z-50 max-w-[220px] truncate rounded-full px-3 py-2 text-footnote font-medium"
+          style={{
+            left: ghost.x,
+            top: ghost.y,
+            transform: "translate(-50%, -140%)",
+            background: `color-mix(in srgb, ${ghost.color} 90%, black)`,
+            color: "#fff",
+            boxShadow: "var(--shadow-lg)",
+          }}
+        >
+          {ghost.title}
+        </div>
       )}
 
       <TaskEditor
@@ -270,113 +380,40 @@ export default function CalendarPage() {
 
 function TaskChip({
   task,
-  onClick,
-  clamp,
+  compact,
+  moved,
+  ...handlers
 }: {
   task: Task;
-  onClick: (t: Task) => void;
-  clamp: 1 | 3;
-}) {
+  compact: boolean;
+  moved: boolean;
+} & React.ComponentProps<"button">) {
   return (
     <button
-      onClick={() => onClick(task)}
-      className="press w-full rounded-[8px] px-1.5 py-1 text-left transition active:scale-[0.98]"
+      {...handlers}
+      className="press w-full touch-none cursor-grab rounded-[8px] px-1.5 py-1 text-left transition active:cursor-grabbing"
       style={{
         background: `color-mix(in srgb, ${CATEGORY_META[task.category].color} ${task.done ? 6 : 13}%, transparent)`,
+        // A brief ring confirms where a dropped task landed.
+        boxShadow: moved
+          ? `0 0 0 2px ${CATEGORY_META[task.category].color}`
+          : undefined,
       }}
     >
       <span
         className={cx(
-          "block text-caption",
-          clamp === 1 ? "truncate" : "line-clamp-3 text-footnote",
+          "block",
+          compact ? "truncate text-caption" : "line-clamp-3 text-footnote",
           task.done && "text-label-tertiary line-through",
         )}
       >
         {task.title}
       </span>
-      {clamp === 3 && task.course && (
+      {!compact && task.course && (
         <span className="mt-0.5 block truncate text-caption2 text-label-secondary">
           {task.course}
         </span>
       )}
     </button>
-  );
-}
-
-function MonthGrid({
-  cells,
-  monthIndex,
-  byDay,
-  todayKey,
-  onOpen,
-  onAdd,
-}: {
-  cells: Date[];
-  monthIndex: number;
-  byDay: Map<string, Task[]>;
-  todayKey: string;
-  onOpen: (t: Task) => void;
-  onAdd: (d: Date) => void;
-}) {
-  return (
-    <div>
-      <div className="mb-1.5 grid grid-cols-7 gap-1.5">
-        {cells.slice(0, 7).map((d) => (
-          <div
-            key={d.toISOString()}
-            className="text-center text-caption2 font-semibold uppercase tracking-[0.06em] text-label-tertiary"
-          >
-            <span className="hidden sm:inline">{WEEKDAY_SHORT.format(d)}</span>
-            <span className="sm:hidden">{WEEKDAY_NARROW.format(d)}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1.5">
-        {cells.map((day) => {
-          const key = dayKey(day);
-          const list = byDay.get(key) ?? [];
-          const isToday = key === todayKey;
-          const outside = day.getMonth() !== monthIndex;
-          const shown = list.slice(0, 2);
-          const extra = list.length - shown.length;
-
-          return (
-            <div
-              key={key}
-              className="flex min-h-[92px] flex-col gap-1 rounded-[10px] p-1.5 transition-colors sm:min-h-[112px]"
-              style={{
-                background: outside
-                  ? "var(--fill-quaternary)"
-                  : "var(--grouped-secondary)",
-                opacity: outside ? 0.55 : 1,
-                boxShadow: isToday ? "inset 0 0 0 2px var(--blue)" : undefined,
-              }}
-            >
-              <button
-                onClick={() => onAdd(day)}
-                aria-label={`Add a task due ${day.toDateString()}`}
-                className={cx(
-                  "press self-start rounded-full px-1.5 text-caption transition",
-                  isToday ? "font-bold text-blue" : "text-label-tertiary",
-                )}
-              >
-                {DAY_NUM.format(day)}
-              </button>
-
-              {shown.map((task) => (
-                <TaskChip key={task.id} task={task} onClick={onOpen} clamp={1} />
-              ))}
-
-              {extra > 0 && (
-                <span className="px-1 text-caption2 text-label-tertiary">
-                  +{extra} more
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
   );
 }

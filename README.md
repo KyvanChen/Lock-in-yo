@@ -12,8 +12,13 @@ with type (homework, studying, projects, personal), class, due date, priority,
 time estimate, and logged focus time. Quick-add on one line, full editor when you
 need it.
 
-**Calendar** — week and month views. Tap a day to add something due then.
-Anything without a date sits underneath, waiting to be scheduled.
+**Calendar** — week and month views. Tap a day's number to add something due
+then. Anything without a date sits in a tray underneath: **drag it onto a day
+to set its deadline**, and drag anything already on the grid to another day to
+move it. Works with a mouse or a finger. A plain tap opens the task instead, so
+nothing is lost to a mis-grab. The grid is always drawn, even with nothing
+scheduled, because an empty calendar is exactly when you need somewhere to drop
+things.
 
 **Ideas** — a bubble map for brainstorming, on a live physics canvas. Bubbles
 repel each other, branches hang off their parent on springs, and everything
